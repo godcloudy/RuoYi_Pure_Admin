@@ -168,7 +168,11 @@ function handleAsyncRoutes(routeList) {
           router.options.routes[0].children.push(v);
           // 最终路由进行升序
           ascending(router.options.routes[0].children);
-          if (!router.hasRoute(v?.name)) router.addRoute(v);
+          if (!router.hasRoute(v?.name)) {
+            console.log("v", v);
+            if (v.path.startsWith("http")) v.path = "/";
+            router.addRoute(v); // path必须以斜杠开头
+          }
           const flattenRouters: any = router
             .getRoutes()
             .find(n => n.path === "/");
@@ -234,6 +238,7 @@ function formatFlatteningRoutes(routesList: RouteRecordRaw[]) {
         .concat(hierarchyList[i].children, hierarchyList.slice(i + 1));
     }
   }
+  console.log("hierarchyList", hierarchyList);
   return hierarchyList;
 }
 
@@ -324,6 +329,7 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       addAsyncRoutes(v.children);
     }
   });
+  console.log("arrRoutes", arrRoutes);
   return arrRoutes;
 }
 

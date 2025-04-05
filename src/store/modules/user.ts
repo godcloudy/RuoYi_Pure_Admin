@@ -7,18 +7,26 @@ import {
   routerArrays,
   storageLocal
 } from "../utils";
-import {
-  type UserResult,
-  type RefreshTokenResult,
-  getLogin,
-  refreshTokenApi
-} from "@/api/user";
+import defAva from "@/assets/user.jpg";
+
+import { type LoginResult, login, getInfo, logout } from "@/api/login";
+
 import { useMultiTagsStoreHook } from "./multiTags";
-import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
+import {
+  type DataInfo,
+  getToken,
+  setToken,
+  removeToken,
+  userKey
+} from "@/utils/auth";
+import { isEmpty, isHttp } from "@/utils/validate";
 
 export const useUserStore = defineStore({
   id: "pure-user",
   state: (): userType => ({
+    token: getToken(),
+    id: "",
+    name: "",
     // 头像
     avatar: storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? "",
     // 用户名
@@ -65,43 +73,84 @@ export const useUserStore = defineStore({
       this.loginDay = Number(value);
     },
     /** 登入 */
-    async loginByUsername(data) {
-      return new Promise<UserResult>((resolve, reject) => {
-        getLogin(data)
-          .then(data => {
-            if (data?.success) setToken(data.data);
-            resolve(data);
+    async loginByUsername(data: any) {
+      return new Promise<LoginResult>((resolve, reject) => {
+        login(data)
+          .then(res => {
+            setToken(res.token);
+            resolve(res);
           })
           .catch(error => {
             reject(error);
           });
       });
     },
-    /** 前端登出（不调用接口） */
-    logOut() {
-      this.username = "";
-      this.roles = [];
-      this.permissions = [];
-      removeToken();
-      useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
-      resetRouter();
-      router.push("/login");
-    },
-    /** 刷新`token` */
-    async handRefreshToken(data) {
-      return new Promise<RefreshTokenResult>((resolve, reject) => {
-        refreshTokenApi(data)
-          .then(data => {
-            if (data) {
-              setToken(data.data);
-              resolve(data);
+
+    /** 获取用户信息 */
+    async getInfo() {
+      return new Promise<any>((resolve, reject) => {
+        getInfo()
+          .then(res => {
+            const user = res.user;
+            let avatar = user.avatar || "";
+            if (!isHttp(avatar)) {
+              avatar = isEmpty(avatar)
+                ? defAva
+                : import.meta.env.VITE_APP_BASE_API + avatar;
             }
+            if (res.roles && res.roles.length > 0) {
+              // 验证返回的roles是否是一个非空数组
+              this.roles = res.roles;
+              this.permissions = res.permissions;
+            } else {
+              this.roles = ["ROLE_DEFAULT"];
+            }
+            this.id = user.userId;
+            this.name = user.userName;
+            this.avatar = avatar;
+            resolve(res);
+          })
+          .catch(error => {
+            reject(error);
+          });
+      });
+    },
+
+    /** 退出登录 */
+    async logOut() {
+      return new Promise<void>((resolve, reject) => {
+        logout()
+          .then(() => {
+            this.token = "";
+            this.roles = [];
+            this.permissions = [];
+            removeToken();
+            useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
+            resetRouter();
+            router.push("/login");
+            resolve();
           })
           .catch(error => {
             reject(error);
           });
       });
     }
+
+    /** 刷新`token` */
+    // async handRefreshToken(data) {
+    //   return new Promise<RefreshTokenResult>((resolve, reject) => {
+    //     refreshTokenApi(data)
+    //       .then(data => {
+    //         if (data) {
+    //           setToken(data.data);
+    //           resolve(data);
+    //         }
+    //       })
+    //       .catch(error => {
+    //         reject(error);
+    //       });
+    //   });
+    // }
   }
 });
 

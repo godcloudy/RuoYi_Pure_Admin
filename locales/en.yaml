@@ -83,9 +83,12 @@ status:
 login:
   pureUsername: Username
   purePassword: Password
+  pureVerifyCode: VerifyCode
   pureLogin: Login
   pureLoginSuccess: Login Success
   pureLoginFail: Login Fail
   pureUsernameReg: Please enter username
   purePassWordReg: Please enter password
   purePassWordRuleReg: The password format should be any combination of 8-18 digits
+  codeReg: Please enter code
+  rememberPassword: Remember Password
